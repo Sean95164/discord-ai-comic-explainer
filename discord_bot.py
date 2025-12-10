@@ -1,6 +1,8 @@
 import discord
+from certifi import contents
 from discord.ext import commands
 from dotenv import dotenv_values
+from xkcd_scraper import XkcdScraper
 
 # load env variables
 config = {
@@ -21,10 +23,16 @@ class Client(commands.Bot):
 class Viewer(discord.ui.View):
     def __init__(self):
         super().__init__()
+        self.xkcd_scraper = XkcdScraper()
 
     @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
-    async def random_button_callback(self, button, interaction: discord.Interaction):
-        await button.response.send_message("Random button clicked!", ephemeral=True)
+    async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        results = await self.xkcd_scraper.xkcd_random_image()
+        img_url = f"https:{results["src"]}"
+        img_description = await self.xkcd_scraper.xkcd_image_description()
+        await interaction.followup.send(content=f"{img_url}\n\n**Description:** \n{img_description}" ,ephemeral=True)
+
 
 def main():
     # initialize intents
