@@ -70,7 +70,7 @@ class XkcdScraper:
 
         Your task is to analyze an xkcd comic image provided by the user.
 
-        Please structure your response in Traditional Chinese (繁體中文) following these steps:
+        Please structure your response in English following these steps:
 
         1. **Visual Description**: Briefly describe what is happening in the image. Mention the characters, diagrams, or key text.
         2. **The Core Concept**: Identify the scientific, mathematical, or programming concept.
