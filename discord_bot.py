@@ -1,5 +1,6 @@
 import discord
-from certifi import contents
+from discord import Interaction
+from discord._types import ClientT
 from discord.ext import commands
 from dotenv import dotenv_values
 from xkcd_scraper import XkcdScraper
@@ -20,6 +21,17 @@ class Client(commands.Bot):
         except Exception as e:
             print(f"Error syncing commands: {e}")
 
+class SearchModel(discord.ui.Modal, title="Search"):
+    user_input = discord.ui.TextInput(
+        label="Search term",
+        style=discord.TextStyle.paragraph,
+        placeholder="Search for a comic by title or number",
+        required=True
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"Searching for {self.user_input.value}", ephemeral=True)
+
 class Viewer(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -31,8 +43,20 @@ class Viewer(discord.ui.View):
         results = await self.xkcd_scraper.xkcd_random_image()
         img_url = f"https:{results["src"]}"
         img_description = await self.xkcd_scraper.xkcd_image_description()
-        await interaction.followup.send(content=f"{img_url}\n\n**Description:** \n{img_description}" ,ephemeral=True)
 
+        embed = discord.Embed(
+            title=results["alt"],
+            url=self.xkcd_scraper.get_image_source_url()
+        )
+
+        embed.add_field(name="Description", value=img_description, inline=False)
+        embed.set_image(url=img_url)
+
+        await interaction.followup.send(embed=embed, view=Viewer(), ephemeral=True)
+
+    @discord.ui.button(label="Search Comic in xkcd", style=discord.ButtonStyle.green, emoji="❓")
+    async def search_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(SearchModel())
 
 def main():
     # initialize intents
