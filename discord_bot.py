@@ -1,6 +1,4 @@
 import discord
-from discord import Interaction
-from discord._types import ClientT
 from discord.ext import commands
 from dotenv import dotenv_values
 from xkcd_scraper import XkcdScraper
@@ -22,6 +20,10 @@ class Client(commands.Bot):
             print(f"Error syncing commands: {e}")
 
 class SearchModel(discord.ui.Modal, title="Search"):
+    def __init__(self, xkcd_scraper: XkcdScraper):
+        super().__init__()
+        self.xkcd_scraper = xkcd_scraper
+
     user_input = discord.ui.TextInput(
         label="Search term",
         style=discord.TextStyle.paragraph,
@@ -30,33 +32,50 @@ class SearchModel(discord.ui.Modal, title="Search"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"Searching for {self.user_input.value}", ephemeral=True)
-
-class Viewer(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.xkcd_scraper = XkcdScraper()
-
-    @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
-    async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        results = await self.xkcd_scraper.xkcd_random_image()
-        img_url = f"https:{results["src"]}"
+        result = await self.xkcd_scraper.search_xkcd(self.user_input.value)
+        img_url = f"https:{result["src"]}"
         img_description = await self.xkcd_scraper.xkcd_image_description()
 
         embed = discord.Embed(
-            title=results["alt"],
+            title=result["alt"],
             url=self.xkcd_scraper.get_image_source_url()
         )
 
         embed.add_field(name="Description", value=img_description, inline=False)
         embed.set_image(url=img_url)
 
-        await interaction.followup.send(embed=embed, view=Viewer(), ephemeral=True)
+        await interaction.followup.send(embed=embed, view=Viewer(self.xkcd_scraper), ephemeral=True)
+
+class Viewer(discord.ui.View):
+    def __init__(self, xkcd_scraper: XkcdScraper = None):
+        super().__init__()
+
+        if xkcd_scraper is None:
+            self.xkcd_scraper = XkcdScraper()
+        else:
+            self.xkcd_scraper = xkcd_scraper
+
+    @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
+    async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        result = await self.xkcd_scraper.xkcd_page_url()
+        img_url = f"https:{result["src"]}"
+        img_description = await self.xkcd_scraper.xkcd_image_description()
+
+        embed = discord.Embed(
+            title=result["alt"],
+            url=self.xkcd_scraper.get_image_source_url()
+        )
+
+        embed.add_field(name="Description", value=img_description, inline=False)
+        embed.set_image(url=img_url)
+
+        await interaction.followup.send(embed=embed, view=Viewer(self.xkcd_scraper), ephemeral=True)
 
     @discord.ui.button(label="Search Comic in xkcd", style=discord.ButtonStyle.green, emoji="❓")
     async def search_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(SearchModel())
+        await interaction.response.send_modal(SearchModel(self.xkcd_scraper))
 
 def main():
     # initialize intents
@@ -67,6 +86,7 @@ def main():
     bot = Client(command_prefix="!", intents=intents)
     GUILD_ID = discord.Object(id=config["SERVER_ID"])
 
+    # xkcd command
     @bot.tree.command(name="xkcd", description="Get the usable options for xkcd", guild=GUILD_ID)
     async def xkcd_panel(interaction: discord.Interaction):
         embed = discord.Embed(
@@ -90,6 +110,7 @@ def main():
         embed.set_image(url="attachment://exploits_of_a_mom_2x.png")
 
         await interaction.response.send_message(file=file, embed=embed, view=Viewer(), ephemeral=True)
+
 
     bot.run(config["DISCORD_BOT_TOKEN"])
 

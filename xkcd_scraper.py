@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_google_community import GoogleSearchAPIWrapper
 
 
 from dotenv import dotenv_values
@@ -12,7 +13,9 @@ from dotenv import dotenv_values
 config = {
     **dotenv_values(".env.secret")
 }
+os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
 os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
+XKCD_CSE_ID = config["XKCD_CSE_ID"]
 
 class XkcdScraper:
     def __init__(self):
@@ -28,7 +31,7 @@ class XkcdScraper:
             # other params...
         )
 
-    async def xkcd_random_image(self, url="https://c.xkcd.com/random/comic/"):
+    async def xkcd_page_url(self, url="https://c.xkcd.com/random/comic/"):
         async with aiohttp.ClientSession() as session:
             try:
                 # fetch the raw HTML
@@ -44,30 +47,39 @@ class XkcdScraper:
                     # extract <img> tags
                     images = soup.find_all('img')
 
-                    print(f"Found {len(images)} images on {url}:")
-
-                    results = []
+                    result = dict()
                     for img in images:
                         # get the 'src' attribute
                         src = img.get('src')
                         alt = img.get('alt', 'No alt text')
 
-                        if src:
-                            results.append({'src': src, 'alt': alt})
+                        if "comic" in src:
+                            result['src'] = src
+                            result['alt'] = alt
                             print(f"- [Alt: {alt}] -> {src}")
 
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
-                    self.src = results[1]['src']
-                    self.alt = results[1]['alt']
-
+                    self.src = result['src']
+                    self.alt = result['alt']
                     if self.src[-4:] == ".gif":
-                        return await self.xkcd_random_image()
+                        return await self.xkcd_page_url()
 
-                    return results[1]
+                    return result
 
             except aiohttp.ClientError as e:
                 print(f"Error fetching URL: {e}")
                 return []
+
+    async def search_xkcd(self, query: str) -> str:
+        """
+        Search for a specific xkcd comic by topic or keywords.
+        Returns the comic title, page link, and direct image URL.
+        """
+        wrapper = GoogleSearchAPIWrapper(google_cse_id=XKCD_CSE_ID)
+        # k=1 ensures we just get the top result
+        results = wrapper.results(query, num_results=1)
+        top_result = results[0]
+        return await self.xkcd_page_url(top_result["link"])
 
     async def xkcd_image_description(self):
         image_url = f"https:{self.src}"
@@ -107,5 +119,5 @@ class XkcdScraper:
 if __name__ == "__main__":
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper()
-    asyncio.run(xkcd_scraper.xkcd_random_image())
-    asyncio.run(xkcd_scraper.xkcd_image_description())
+    asyncio.run(xkcd_scraper.xkcd_page_url("https://xkcd.com/353/"))
+    # asyncio.run(xkcd_scraper.xkcd_image_description())
