@@ -12,53 +12,39 @@ import json
 config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 
 
-TURNOFFUS_CSE_ID = config["TURNOFFUS_CSE_ID"]
+MONKEYUSER_CSE_ID = config["MONKEYUSER_CSE_ID"]
 
 
-class TurnOffUsScraper(Scraper):
+class MonkeyUserScraper(Scraper):
 
     def __init__(self):
-        super().__init__(google_cse_id=TURNOFFUS_CSE_ID)
+        super().__init__(google_cse_id=MONKEYUSER_CSE_ID)
 
     @property
     def comic_name(self):
-        return "turnoff.us"
+        return "monkeyuser.com"
 
     @property
     def search_domain(self):
-        return "turnoff.us/geek/"
+        return "www.monkeyuser.com/"
 
     @property
     async def random_comic_url(self):
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://turnoff.us/") as response:
+            async with session.get("https://www.monkeyuser.com/index.json") as response:
                 response.raise_for_status()
 
-                html = await response.text()
+                json_data = await response.json()
+                random_comic = random.choice(json_data)
 
-                pattern = re.compile(r"var pages = (\[.*?\]);", re.DOTALL)
-                match = pattern.search(html)
-
-                if match:
-                    pages_str = match.group(1)
-                    pages = json.loads(pages_str)
-
-                    if pages:
-                        base_url = "https://turnoff.us/"
-                        random_path = random.choice(pages)
-                        full_url = urljoin(base_url, random_path)
-                        print(f"Random link: {full_url}")
-                        return full_url
-                    else:
-                        return None
-
-                else:
-                    print("No random link found.")
-                    return None
+                base_url = "https://www.monkeyuser.com"
+                full_url = urljoin(base_url, random_comic["url"])
+                print(f"Random link: {full_url}")
+                return full_url
 
     @property
     def latest_comic_url(self):
-        return "https://turnoff.us/"
+        return "https://www.monkeyuser.com/"
 
     async def random_comic(self):
         return await self._page_url(await self.random_comic_url)
@@ -74,11 +60,11 @@ class TurnOffUsScraper(Scraper):
                     html = await response.text()
                     soup = BeautifulSoup(html, "lxml")
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
-                    article = soup.find("article", class_="post-content")
-                    if article:
-                        img_tag = article.find("img")
+                    content_div = soup.find("div", class_="content")
+                    if content_div:
+                        img_tag = content_div.find("img")
                         if img_tag:
-                            base_url = "https://turnoff.us/"
+                            base_url = "https://www.monkeyuser.com"
                             self.src = urljoin(base_url, img_tag["src"])
                             self.alt = img_tag["alt"]
                             if self.src[-4:] == ".gif":
@@ -86,13 +72,13 @@ class TurnOffUsScraper(Scraper):
                                     base_url, soup.find(id="random-link")["href"]
                                 )
                                 return await self._page_url(random_url)
-
+                            print(self.src)
                             return {"title": self.alt, "img": self.src}
                         else:
                             print("No image found.")
                             return None
                     else:
-                        print("No article found.")
+                        print("No content_div found.")
                         return None
 
             except aiohttp.ClientError as e:
@@ -102,7 +88,7 @@ class TurnOffUsScraper(Scraper):
 
 # Run the async function
 if __name__ == "__main__":
-    turnoff_us_scraper = TurnOffUsScraper()
+    monkey_user_scraper = MonkeyUserScraper()
     # asyncio.run(turnoff_us_scraper.search_comic("unzip"))
-    asyncio.run(turnoff_us_scraper.random_comic())
-    asyncio.run(turnoff_us_scraper.describe_comic())
+    asyncio.run(monkey_user_scraper.random_comic())
+    asyncio.run(monkey_user_scraper.describe_comic())
