@@ -1,13 +1,11 @@
 import aiohttp
 import asyncio
-
+import random
 from bs4 import BeautifulSoup
 from dotenv import dotenv_values
 from scraper import Scraper
 from urllib.parse import urljoin
-import re
-import random
-import json
+
 
 config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 

@@ -127,7 +127,7 @@ class TurnOffUsButtonView(discord.ui.View):
     Interactive Discord UI view for interacting with TurnOffUsScraper.
 
     This class provides an interactive Discord UI view with buttons for fetching the latest comic,
-    selecting a random comic, or searching for a comic within the xkcd collection. It serves as a
+    selecting a random comic, or searching for a comic within the turnoff.us collection. It serves as a
     bridge between the user interface and the TurnOffUsScraper functionality.
 
     Attributes:
@@ -168,7 +168,7 @@ class TurnOffUsButtonView(discord.ui.View):
         )
 
     @discord.ui.button(
-        label="Search Comic in xkcd", style=discord.ButtonStyle.green, emoji="❓"
+        label="Search Comic in turnoff.us", style=discord.ButtonStyle.green, emoji="❓"
     )
     async def search_button_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -183,12 +183,12 @@ class TurnOffUsButtonView(discord.ui.View):
 # =================================================
 
 
-async def _create_comic_embed(xkcd_scraper: TurnOffUsScraper, result):
+async def _create_comic_embed(turn_off_us_scraper: TurnOffUsScraper, result):
     img_url = result["img"]
-    img_description_json = await xkcd_scraper.describe_comic()
+    img_description_json = await turn_off_us_scraper.describe_comic()
 
     embed = discord.Embed(
-        title=result["title"], url=xkcd_scraper.get_comic_source_url()
+        title=result["title"], url=turn_off_us_scraper.get_comic_source_url()
     )
 
     for key, value in img_description_json.items():

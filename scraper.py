@@ -1,3 +1,5 @@
+import os
+import json
 from abc import ABC, abstractmethod
 from langchain_google_community import GoogleSearchAPIWrapper
 from langchain_core.prompts import ChatPromptTemplate
@@ -7,8 +9,6 @@ from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_groq import ChatGroq
 from ddgs.exceptions import DDGSException
 from pydantic_object import ComicAnalysis
-import os
-import json
 from dotenv import dotenv_values
 
 config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
