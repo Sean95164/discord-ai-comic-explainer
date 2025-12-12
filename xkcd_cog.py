@@ -65,7 +65,7 @@ class XkcdCog(commands.Cog):
 
         channel = self.bot.get_channel(int(config["CHANNEL_ID"]))
         if channel:
-            result = await self.xkcd_scraper.xkcd_latest()
+            result = await self.xkcd_scraper.latest_comic()
             embed = await _create_comic_embed(self.xkcd_scraper, result)
             await channel.send(embed=embed)
         else:
@@ -102,7 +102,7 @@ class XkcdSearchModal(discord.ui.Modal, title="Search"):
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        result = await self.xkcd_scraper.xkcd_search(self.user_input.value)
+        result = await self.xkcd_scraper.search_comic(self.user_input.value)
         if not result:
             await interaction.followup.send("No results found.", ephemeral=True)
 
@@ -128,7 +128,7 @@ class XkcdButtonView(discord.ui.View):
     @discord.ui.button(label="Latest", style=discord.ButtonStyle.primary, emoji="😎")
     async def latest_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        result = await self.xkcd_scraper.xkcd_latest()
+        result = await self.xkcd_scraper.latest_comic()
 
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
@@ -136,7 +136,7 @@ class XkcdButtonView(discord.ui.View):
     @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
     async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        result = await self.xkcd_scraper.xkcd_random()
+        result = await self.xkcd_scraper.random_comic()
 
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
@@ -151,11 +151,11 @@ class XkcdButtonView(discord.ui.View):
 
 async def _create_comic_embed(xkcd_scraper: XkcdScraper, result):
     img_url = result["img"]
-    img_description_json = await xkcd_scraper.xkcd_image_description()
+    img_description_json = await xkcd_scraper.describe_comic()
 
     embed = discord.Embed(
         title=result["title"],
-        url=xkcd_scraper.get_image_source_url()
+        url=xkcd_scraper.get_comic_source_url()
     )
 
     for key, value in img_description_json.items():

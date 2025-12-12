@@ -1,81 +1,38 @@
 import aiohttp
 import asyncio
 import os
-from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_google_community import GoogleSearchAPIWrapper
-from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from ddgs.exceptions import DDGSException
-from pydantic_object import ComicAnalysis
-import json
 from dotenv import dotenv_values
+from scraper import Scraper
 
 config = {
     **dotenv_values(".env.secret"),
     **dotenv_values(".env.public")
 }
 
-os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
-os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
 XKCD_CSE_ID = config["XKCD_CSE_ID"]
-SEARCH_ENGINE = config["SEARCH_ENGINE"]
 
-
-class XkcdScraper:
-    """
-    A scraper class for fetching and analyzing xkcd comics.
-
-    Provides methods to fetch random, latest, or specific xkcd comics and analyze the
-    content of the fetched comics. The class handles interactions with external APIs
-    such as xkcd's JSON API and optional search engines to search for specific comics.
-
-    Attributes:
-        src: str
-            The direct URL to the comic image.
-        alt: str
-            The alt text associated with the comic image.
-        url: str
-            The URL of the fetched comic page.
-        llm: ChatGroq
-            The language model used for comic analysis.
-
-    Methods:
-        __init__:
-            Initializes the XkcdScraper object and its required attributes.
-
-        xkcd_random:
-            Fetches a random xkcd comic.
-
-        xkcd_latest:
-            Fetches the latest xkcd comic.
-
-        xkcd_search:
-            Searches for a specific xkcd comic by topic or keywords.
-
-        xkcd_image_description:
-            Analyzes the fetched comic and provides a structured description
-            and an explanation of its content.
-
-        get_image_source_url:
-            Returns the URL of the current comic's page.
-    """
+class XkcdScraper(Scraper):
 
     def __init__(self):
-        self.src = None
-        self.alt = None
-        self.url = None
-        self.llm = ChatGroq(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
-            temperature=1,
-            max_tokens=256,
-            timeout=None,
-            max_retries=2,
-            # other params...
-        )
+        super().__init__(google_cse_id=XKCD_CSE_ID)
 
-    async def _xkcd_page_url(self, url: str):
+    @property
+    def comic_name(self):
+        return "xkcd"
+
+    @property
+    def search_domain(self):
+        return "www.xkcd.com/"
+
+    @property
+    def random_comic_url(self):
+        return "https://c.xkcd.com/random/comic/"
+
+    @property
+    def latest_comic_url(self):
+        return "https://xkcd.com/"
+
+    async def _page_url(self, url: str):
         async with aiohttp.ClientSession() as session:
             try:
                 # fetch the raw HTML
@@ -93,7 +50,7 @@ class XkcdScraper:
                     self.src = comic_json['img']
                     self.alt = comic_json['alt']
                     if self.src[-4:] == ".gif":
-                        return await self._xkcd_page_url("https://c.xkcd.com/random/comic/")
+                        return await self._page_url("https://c.xkcd.com/random/comic/")
 
                     return comic_json
 
@@ -101,89 +58,10 @@ class XkcdScraper:
                 print(f"Error fetching URL: {e}")
                 return []
 
-    async def xkcd_random(self):
-        return await self._xkcd_page_url("https://c.xkcd.com/random/comic/")
-
-    async def xkcd_latest(self):
-        return await self._xkcd_page_url("https://xkcd.com/")
-
-    async def xkcd_search(self, query: str, search_engine=SEARCH_ENGINE):
-        """
-        Search for a specific xkcd comic by topic or keywords.
-        Returns the comic title, page link, and direct image URL.
-        """
-        link = None
-        if search_engine == "google":
-            wrapper = GoogleSearchAPIWrapper(google_cse_id=XKCD_CSE_ID)
-            # k=1 ensures we just get the top result
-            results = wrapper.results(query, num_results=1)
-            if results:
-                link = results[0]["link"]
-
-        elif search_engine == "duckduckgo":
-            wrapper = DuckDuckGoSearchAPIWrapper(
-                region="us-en",
-                source="text",
-                safesearch="off",
-                max_results=3
-            )
-            search = DuckDuckGoSearchResults(api_wrapper=wrapper, output_format="json", num_results=1)
-
-            try:
-                results = json.loads(await search.ainvoke(f"{query} site:www.xkcd.com"))
-                print(results)
-                if results:
-                    link = results[0]["link"]
-            except DDGSException:
-                print(f"No results found")
-                return None
-
-        if link:
-            return await self._xkcd_page_url(link)
-        return None
-
-    async def xkcd_image_description(self):
-        image_url = self.src
-        alt_text_info = f"Alt text: {self.alt}"
-        system_prompt_text = """
-        You are a witty xkcd explainer. 
-        Analyze the provided comic and output the response in JSON format.
-        
-        Structure your response according to the instructions below:
-        {format_instructions}
-        
-        Keep the explanation concise and accessible.
-        """
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt_text),
-            ("human", [
-                {"type": "text", "text": "Here is an xkcd comic. {alt_text_info}"},
-                {"type": "image_url", "image_url": {"url": "{image_url}"}},
-            ]),
-        ])
-
-        output_parser = JsonOutputParser(pydantic_object=ComicAnalysis)
-
-        prompt_with_instructions = prompt.partial(format_instructions=output_parser.get_format_instructions())
-
-        chain = prompt_with_instructions | self.llm | output_parser
-
-        try:
-            result = await chain.ainvoke({"image_url": image_url, "alt_text_info": alt_text_info})
-            print(result)
-            return result
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            return {"Core_concept": "Error", "Explanation": "Failed to parse analysis."}
-
-    def get_image_source_url(self):
-        return self.url
-
 
 # Run the async function
 if __name__ == "__main__":
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper()
-    asyncio.run(xkcd_scraper.xkcd_search("SQL injection"))
-    asyncio.run(xkcd_scraper.xkcd_image_description())
+    asyncio.run(xkcd_scraper.search_comic("sql injection"))
+    asyncio.run(xkcd_scraper.describe_comic())
