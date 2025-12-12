@@ -66,6 +66,9 @@ class XkcdScraper:
     async def xkcd_random(self):
         return await self._xkcd_page_url("https://c.xkcd.com/random/comic/")
 
+    async def xkcd_latest(self):
+        return await self._xkcd_page_url("https://xkcd.com/info.0.json")
+
     async def xkcd_search(self, query: str, search_engine=SEARCH_ENGINE):
         """
         Search for a specific xkcd comic by topic or keywords.
@@ -83,7 +86,8 @@ class XkcdScraper:
             wrapper = DuckDuckGoSearchAPIWrapper(
                 region="us-en",
                 source="text",
-                safesearch="off"
+                safesearch="off",
+                max_results=3
             )
             search = DuckDuckGoSearchResults(api_wrapper=wrapper, output_format="json", num_results=1)
 
@@ -144,6 +148,6 @@ class XkcdScraper:
 if __name__ == "__main__":
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper()
-    asyncio.run(xkcd_scraper._xkcd_page_url("https://xkcd.com/353/"))
+    asyncio.run(xkcd_scraper.xkcd_search("SQL injection"))
     # asyncio.run(xkcd_scraper.xkcd_image_description())
     # asyncio.run(xkcd_scraper.search_xkcd("data alignment"))
