@@ -15,7 +15,7 @@ task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
 class XkcdCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.test_task.start()
+        self.post_xkcd_comic.start()
         self.xkcd_scraper = XkcdScraper()
 
 
@@ -45,7 +45,7 @@ class XkcdCog(commands.Cog):
         await interaction.response.send_message(file=file, embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
 
     @tasks.loop(time=task_time)
-    async def test_task(self):
+    async def post_xkcd_comic(self):
         now = datetime.datetime.now(timezone)
 
         if now.weekday() not in [0, 2, 4]:
@@ -59,7 +59,7 @@ class XkcdCog(commands.Cog):
         else:
             print("Channel not found.")
 
-    @test_task.before_loop
+    @post_xkcd_comic.before_loop
     async def before_test_task(self):
         await self.bot.wait_until_ready()
 
@@ -90,6 +90,14 @@ class XkcdButtonView(discord.ui.View):
         super().__init__()
         self.xkcd_scraper = xkcd_scraper
 
+    @discord.ui.button(label="Latest", style=discord.ButtonStyle.primary, emoji="😎")
+    async def latest_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        result = await self.xkcd_scraper.xkcd_latest()
+
+        embed = await _create_comic_embed(self.xkcd_scraper, result)
+        await interaction.followup.send(embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
+
     @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
     async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
@@ -119,5 +127,5 @@ async def _create_comic_embed(xkcd_scraper: XkcdScraper, result):
         embed.add_field(name=key, value=value, inline=False)
 
     embed.set_image(url=img_url)
-
+    embed.set_footer(text=f"Posted on {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}")
     return embed
