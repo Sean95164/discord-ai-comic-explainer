@@ -27,6 +27,7 @@ async def main():
     # initialize intents
     intents = discord.Intents.default()
     intents.message_content = True
+    intents.guilds = True
 
     # initialize bot
     bot = Client(command_prefix="!", intents=intents)

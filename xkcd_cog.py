@@ -1,4 +1,5 @@
 import discord
+import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 from xkcd_scraper import XkcdScraper
@@ -8,9 +9,16 @@ config = {
     **dotenv_values(".env.secret")
 }
 
+timezone = datetime.timezone(datetime.timedelta(hours=8))
+task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
+
 class XkcdCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.test_task.start()
+        self.xkcd_scraper = XkcdScraper()
+
+
 
     @app_commands.command(name="xkcd", description="Get the usable options for xkcd")
     async def xkcd_panel(self, interaction: discord.Interaction):
@@ -34,7 +42,26 @@ class XkcdCog(commands.Cog):
         file = discord.File("assets/exploits_of_a_mom_2x.png")
         embed.set_image(url="attachment://exploits_of_a_mom_2x.png")
 
-        await interaction.response.send_message(file=file, embed=embed, view=XkcdButtonView(), ephemeral=True)
+        await interaction.response.send_message(file=file, embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
+
+    @tasks.loop(time=task_time)
+    async def test_task(self):
+        now = datetime.datetime.now(timezone)
+
+        if now.weekday() not in [0, 2, 4]:
+            return
+
+        channel = self.bot.get_channel(int(config["CHANNEL_ID"]))
+        if channel:
+            result = await self.xkcd_scraper.xkcd_latest()
+            embed = await _create_comic_embed(self.xkcd_scraper, result)
+            await channel.send(embed=embed)
+        else:
+            print("Channel not found.")
+
+    @test_task.before_loop
+    async def before_test_task(self):
+        await self.bot.wait_until_ready()
 
 
 class XkcdSearchModal(discord.ui.Modal, title="Search"):
@@ -61,11 +88,7 @@ class XkcdSearchModal(discord.ui.Modal, title="Search"):
 class XkcdButtonView(discord.ui.View):
     def __init__(self, xkcd_scraper: XkcdScraper = None):
         super().__init__()
-
-        if xkcd_scraper is None:
-            self.xkcd_scraper = XkcdScraper()
-        else:
-            self.xkcd_scraper = xkcd_scraper
+        self.xkcd_scraper = xkcd_scraper
 
     @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
     async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -78,6 +101,10 @@ class XkcdButtonView(discord.ui.View):
     @discord.ui.button(label="Search Comic in xkcd", style=discord.ButtonStyle.green, emoji="❓")
     async def search_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(XkcdSearchModal(self.xkcd_scraper))
+
+# =================================================
+# The following is helper functions
+# =================================================
 
 async def _create_comic_embed(xkcd_scraper: XkcdScraper, result):
     img_url = result["img"]

@@ -52,6 +52,7 @@ class XkcdScraper:
                     print(comic_json)
 
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
+                    self.url = f"https://xkcd.com/{comic_json['num']}/"
                     self.src = comic_json['img']
                     self.alt = comic_json['alt']
                     if self.src[-4:] == ".gif":
@@ -67,7 +68,7 @@ class XkcdScraper:
         return await self._xkcd_page_url("https://c.xkcd.com/random/comic/")
 
     async def xkcd_latest(self):
-        return await self._xkcd_page_url("https://xkcd.com/info.0.json")
+        return await self._xkcd_page_url("https://xkcd.com/")
 
     async def xkcd_search(self, query: str, search_engine=SEARCH_ENGINE):
         """
