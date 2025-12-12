@@ -33,16 +33,21 @@ class SearchModel(discord.ui.Modal, title="Search"):
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        result = await self.xkcd_scraper.search_xkcd(self.user_input.value)
-        img_url = f"https:{result["src"]}"
-        img_description = await self.xkcd_scraper.xkcd_image_description()
+        result = await self.xkcd_scraper.xkcd_search(self.user_input.value)
+        if not result:
+            return await interaction.followup.send("No results found.", ephemeral=True)
+
+        img_url = result["img"]
+        img_description_json = await self.xkcd_scraper.xkcd_image_description()
 
         embed = discord.Embed(
-            title=result["alt"],
+            title=result["title"],
             url=self.xkcd_scraper.get_image_source_url()
         )
 
-        embed.add_field(name="Description", value=img_description, inline=False)
+        for key, value in img_description_json.items():
+            embed.add_field(name=key, value=value, inline=False)
+
         embed.set_image(url=img_url)
 
         await interaction.followup.send(embed=embed, view=Viewer(self.xkcd_scraper), ephemeral=True)
@@ -59,16 +64,18 @@ class Viewer(discord.ui.View):
     @discord.ui.button(label="Random Select", style=discord.ButtonStyle.red, emoji="👀")
     async def random_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        result = await self.xkcd_scraper.xkcd_page_url()
-        img_url = f"https:{result["src"]}"
-        img_description = await self.xkcd_scraper.xkcd_image_description()
+        result = await self.xkcd_scraper.xkcd_random()
+        img_url = result["img"]
+        img_description_json = await self.xkcd_scraper.xkcd_image_description()
 
         embed = discord.Embed(
-            title=result["alt"],
+            title=result["title"],
             url=self.xkcd_scraper.get_image_source_url()
         )
 
-        embed.add_field(name="Description", value=img_description, inline=False)
+        for key, value in img_description_json.items():
+            embed.add_field(name=key, value=value, inline=False)
+
         embed.set_image(url=img_url)
 
         await interaction.followup.send(embed=embed, view=Viewer(self.xkcd_scraper), ephemeral=True)
