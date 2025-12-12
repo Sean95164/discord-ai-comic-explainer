@@ -13,6 +13,18 @@ timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
 
 class XkcdCog(commands.Cog):
+    """
+    Cog for interacting with and posting content from xkcd.
+
+    This class provides functionality to display xkcd panels through Discord
+    interactions and automatically post xkcd comics on specific days. It uses
+    the XkcdScraper for fetching xkcd data and manages tasks such as scheduled
+    posting.
+
+    Attributes:
+        bot: The instance of the bot the cog is registered to.
+        xkcd_scraper: An instance of the XkcdScraper used for retrieving xkcd data.
+    """
     def __init__(self, bot):
         self.bot = bot
         self.post_xkcd_comic.start()
@@ -65,6 +77,18 @@ class XkcdCog(commands.Cog):
 
 
 class XkcdSearchModal(discord.ui.Modal, title="Search"):
+    """
+    Represents a modal for searching xkcd comics.
+
+    This class is a user interface component designed to enable searching xkcd comics
+    through a Discord interaction. Users can input a search term via a text input field,
+    and upon submission, the modal interacts with a xkcd scraping utility to fetch and
+    display relevant results back to the user. Results are presented in an embed format
+    with an associated button view for further interaction.
+
+    Attributes:
+        user_input (discord.ui.TextInput): Text input field where the user enters a search term.
+    """
     def __init__(self, xkcd_scraper: XkcdScraper):
         super().__init__()
         self.xkcd_scraper = xkcd_scraper
@@ -86,6 +110,17 @@ class XkcdSearchModal(discord.ui.Modal, title="Search"):
         await interaction.followup.send(embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True)
 
 class XkcdButtonView(discord.ui.View):
+    """
+    Provides a Discord UI View with buttons for interacting with xkcd comics.
+
+    This class defines a custom Discord UI View consisting of buttons that allow
+    users to interact with various functionalities related to xkcd comics, such
+    as fetching the latest comic, selecting a random comic, or searching for a comic.
+
+    Attributes:
+        xkcd_scraper (XkcdScraper): An instance of the XkcdScraper class used to
+        interact with xkcd's API.
+    """
     def __init__(self, xkcd_scraper: XkcdScraper = None):
         super().__init__()
         self.xkcd_scraper = xkcd_scraper

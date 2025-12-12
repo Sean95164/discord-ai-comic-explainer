@@ -1,7 +1,6 @@
 import aiohttp
 import asyncio
 import os
-from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
@@ -11,20 +10,58 @@ from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from ddgs.exceptions import DDGSException
 from pydantic_object import ComicAnalysis
 import json
-
-
 from dotenv import dotenv_values
 
 config = {
     **dotenv_values(".env.secret"),
     **dotenv_values(".env.public")
 }
+
 os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
 os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
 XKCD_CSE_ID = config["XKCD_CSE_ID"]
 SEARCH_ENGINE = config["SEARCH_ENGINE"]
 
+
 class XkcdScraper:
+    """
+    A scraper class for fetching and analyzing xkcd comics.
+
+    Provides methods to fetch random, latest, or specific xkcd comics and analyze the
+    content of the fetched comics. The class handles interactions with external APIs
+    such as xkcd's JSON API and optional search engines to search for specific comics.
+
+    Attributes:
+        src: str
+            The direct URL to the comic image.
+        alt: str
+            The alt text associated with the comic image.
+        url: str
+            The URL of the fetched comic page.
+        llm: ChatGroq
+            The language model used for comic analysis.
+
+    Methods:
+        __init__:
+            Initializes the XkcdScraper object and its required attributes.
+
+        xkcd_random:
+            Fetches a random xkcd comic.
+
+        xkcd_latest:
+            Fetches the latest xkcd comic.
+
+        xkcd_search:
+            Searches for a specific xkcd comic by topic or keywords.
+
+        xkcd_image_description:
+            Analyzes the fetched comic and provides a structured description
+            and an explanation of its content.
+
+        get_image_source_url:
+            Returns the URL of the current comic's page.
+    """
+
     def __init__(self):
         self.src = None
         self.alt = None
@@ -56,7 +93,7 @@ class XkcdScraper:
                     self.src = comic_json['img']
                     self.alt = comic_json['alt']
                     if self.src[-4:] == ".gif":
-                        return await self._xkcd_page_url()
+                        return await self._xkcd_page_url("https://c.xkcd.com/random/comic/")
 
                     return comic_json
 
@@ -144,11 +181,9 @@ class XkcdScraper:
         return self.url
 
 
-
 # Run the async function
 if __name__ == "__main__":
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper()
     asyncio.run(xkcd_scraper.xkcd_search("SQL injection"))
-    # asyncio.run(xkcd_scraper.xkcd_image_description())
-    # asyncio.run(xkcd_scraper.search_xkcd("data alignment"))
+    asyncio.run(xkcd_scraper.xkcd_image_description())
