@@ -11,16 +11,22 @@ import os
 import json
 from dotenv import dotenv_values
 
-config = {
-    **dotenv_values(".env.secret"),
-    **dotenv_values(".env.public")
-}
+config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 
 os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
 os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
 SEARCH_ENGINE = config["SEARCH_ENGINE"]
 
+
 class Scraper(ABC):
+    """
+    Base class for creating a scraper to fetch and analyze comics from various sources.
+
+    This abstract class defines the structure and methods required for creating a comic
+    scraper. Subclasses should provide implementations for abstract properties and methods
+    and can leverage the provided utilities for fetching and describing comics.
+    """
+
     def __init__(self, google_cse_id: str = None):
         self.src = None
         self.alt = None
@@ -75,15 +81,16 @@ class Scraper(ABC):
 
         elif search_engine == "duckduckgo":
             wrapper = DuckDuckGoSearchAPIWrapper(
-                region="us-en",
-                source="text",
-                safesearch="off",
-                max_results=3
+                region="us-en", source="text", safesearch="off", max_results=3
             )
-            search = DuckDuckGoSearchResults(api_wrapper=wrapper, output_format="json", num_results=1)
+            search = DuckDuckGoSearchResults(
+                api_wrapper=wrapper, output_format="json", num_results=1
+            )
 
             try:
-                results = json.loads(await search.ainvoke(f"{query} site:{self.search_domain}"))
+                results = json.loads(
+                    await search.ainvoke(f"{query} site:{self.search_domain}")
+                )
                 print(results)
                 if results:
                     link = results[0]["link"]
@@ -108,22 +115,38 @@ class Scraper(ABC):
         Keep the explanation concise and accessible.
         """
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt_text),
-            ("human", [
-                {"type": "text", "text": "Here is an {comic_name} comic. {alt_text_info}"},
-                {"type": "image_url", "image_url": {"url": "{image_url}"}},
-            ]),
-        ])
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt_text),
+                (
+                    "human",
+                    [
+                        {
+                            "type": "text",
+                            "text": "Here is an {comic_name} comic. {alt_text_info}",
+                        },
+                        {"type": "image_url", "image_url": {"url": "{image_url}"}},
+                    ],
+                ),
+            ]
+        )
 
         output_parser = JsonOutputParser(pydantic_object=ComicAnalysis)
 
-        prompt_with_instructions = prompt.partial(format_instructions=output_parser.get_format_instructions())
+        prompt_with_instructions = prompt.partial(
+            format_instructions=output_parser.get_format_instructions()
+        )
 
         chain = prompt_with_instructions | self.llm | output_parser
 
         try:
-            result = await chain.ainvoke({"image_url": image_url, "alt_text_info": alt_text_info, "comic_name": self.comic_name})
+            result = await chain.ainvoke(
+                {
+                    "image_url": image_url,
+                    "alt_text_info": alt_text_info,
+                    "comic_name": self.comic_name,
+                }
+            )
             print(result)
             return result
         except Exception as e:

@@ -1,15 +1,12 @@
 import aiohttp
 import asyncio
-import os
 from dotenv import dotenv_values
 from scraper import Scraper
 
-config = {
-    **dotenv_values(".env.secret"),
-    **dotenv_values(".env.public")
-}
+config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 
 XKCD_CSE_ID = config["XKCD_CSE_ID"]
+
 
 class XkcdScraper(Scraper):
 
@@ -47,8 +44,8 @@ class XkcdScraper(Scraper):
 
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
                     self.url = f"https://xkcd.com/{comic_json['num']}/"
-                    self.src = comic_json['img']
-                    self.alt = comic_json['alt']
+                    self.src = comic_json["img"]
+                    self.alt = comic_json["alt"]
                     if self.src[-4:] == ".gif":
                         return await self._page_url("https://c.xkcd.com/random/comic/")
 

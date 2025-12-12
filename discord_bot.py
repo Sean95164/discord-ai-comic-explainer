@@ -1,15 +1,15 @@
 import asyncio
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from dotenv import dotenv_values
 
+from turn_off_us_cog import TurnOffUsCog
 from xkcd_cog import XkcdCog
 
 # load env variables
-config = {
-    **dotenv_values(".env.secret")
-}
+config = {**dotenv_values(".env.secret")}
+
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -33,7 +33,9 @@ async def main():
     bot = Client(command_prefix="!", intents=intents)
 
     await bot.add_cog(XkcdCog(bot), guild=discord.Object(id=config["SERVER_ID"]))
+    await bot.add_cog(TurnOffUsCog(bot), guild=discord.Object(id=config["SERVER_ID"]))
     await bot.start(config["DISCORD_BOT_TOKEN"])
+
 
 if __name__ == "__main__":
     asyncio.run(main())

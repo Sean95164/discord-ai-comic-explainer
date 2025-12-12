@@ -9,19 +9,19 @@ import re
 import random
 import json
 
-config = {
-    **dotenv_values(".env.secret"),
-    **dotenv_values(".env.public")
-}
+config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 
 
 TURNOFFUS_CSE_ID = config["TURNOFFUS_CSE_ID"]
+
 
 class TurnOffUsScraper(Scraper):
 
     def __init__(self):
         super().__init__(google_cse_id=TURNOFFUS_CSE_ID)
-        self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"}
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+        }
 
     @property
     def comic_name(self):
@@ -82,10 +82,12 @@ class TurnOffUsScraper(Scraper):
                         img_tag = article.find("img")
                         if img_tag:
                             base_url = "https://turnoff.us/"
-                            self.src = urljoin(base_url, img_tag['src'])
-                            self.alt = img_tag['alt']
+                            self.src = urljoin(base_url, img_tag["src"])
+                            self.alt = img_tag["alt"]
                             if self.src[-4:] == ".gif":
-                                random_url = urljoin(base_url, soup.find(id="random-link")["href"])
+                                random_url = urljoin(
+                                    base_url, soup.find(id="random-link")["href"]
+                                )
                                 return await self._page_url(random_url)
 
                             return {"title": self.alt, "img": self.src}
@@ -95,7 +97,6 @@ class TurnOffUsScraper(Scraper):
                     else:
                         print("No article found.")
                         return None
-
 
             except aiohttp.ClientError as e:
                 print(f"Error fetching URL: {e}")
