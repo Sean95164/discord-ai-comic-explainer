@@ -3,6 +3,8 @@ import asyncio
 import random
 from bs4 import BeautifulSoup
 from dotenv import dotenv_values
+
+from comic_object import ComicData
 from scraper import Scraper
 from urllib.parse import urljoin
 
@@ -45,9 +47,9 @@ class MonkeyUserScraper(Scraper):
         return "https://www.monkeyuser.com/"
 
     async def random_comic(self):
-        return await self._page_url(await self.random_comic_url)
+        return await self._fetch_content(await self.random_comic_url)
 
-    async def _page_url(self, url: str):
+    async def _fetch_content(self, url: str) -> ComicData | None:
         async with aiohttp.ClientSession() as session:
             try:
                 # fetch the raw HTML
@@ -69,9 +71,17 @@ class MonkeyUserScraper(Scraper):
                                 random_url = urljoin(
                                     base_url, soup.find(id="random-link")["href"]
                                 )
-                                return await self._page_url(random_url)
-                            print(self.src)
-                            return {"title": self.alt, "img": self.src}
+                                return await self._fetch_content(random_url)
+
+                            comic_data = ComicData(
+                                title=img_tag["title"],
+                                description=self.alt,
+                                image_url=self.src,
+                                source_url=str(self.url),
+                                source_name=self.comic_name,
+                            )
+
+                            return comic_data
                         else:
                             print("No image found.")
                             return None

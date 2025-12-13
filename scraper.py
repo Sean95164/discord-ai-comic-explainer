@@ -8,7 +8,7 @@ from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_groq import ChatGroq
 from ddgs.exceptions import DDGSException
-from pydantic_object import ComicAnalysis
+from comic_object import ComicAnalysis, ComicData
 from dotenv import dotenv_values
 
 config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
@@ -16,6 +16,7 @@ config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
 os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
 os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
 SEARCH_ENGINE = config["SEARCH_ENGINE"]
+IMAGE_LLM = config["IMAGE_LLM"]
 
 
 class Scraper(ABC):
@@ -33,9 +34,9 @@ class Scraper(ABC):
         self.url = None
         self.google_cse_id = google_cse_id
         self.llm = ChatGroq(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model=IMAGE_LLM,
             temperature=1,
-            max_tokens=256,
+            max_tokens=512,
             timeout=None,
             max_retries=2,
         )
@@ -61,14 +62,14 @@ class Scraper(ABC):
         pass
 
     @abstractmethod
-    async def _page_url(self, url: str):
+    async def _fetch_content(self, comic_url: str) -> ComicData | None:
         pass
 
     async def random_comic(self):
-        return await self._page_url(self.random_comic_url)
+        return await self._fetch_content(self.random_comic_url)
 
     async def latest_comic(self):
-        return await self._page_url(self.latest_comic_url)
+        return await self._fetch_content(self.latest_comic_url)
 
     async def search_comic(self, query: str, search_engine=SEARCH_ENGINE):
         link = None
@@ -99,7 +100,7 @@ class Scraper(ABC):
                 return None
 
         if link:
-            return await self._page_url(link)
+            return await self._fetch_content(link)
         return None
 
     async def describe_comic(self):

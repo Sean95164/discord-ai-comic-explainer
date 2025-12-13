@@ -3,6 +3,7 @@ import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 from turnoff_us_scraper import TurnOffUsScraper
+from comic_object import ComicData
 from dotenv import dotenv_values
 
 config = {**dotenv_values(".env.secret")}
@@ -183,13 +184,13 @@ class TurnOffUsButtonView(discord.ui.View):
 # =================================================
 
 
-async def _create_comic_embed(turn_off_us_scraper: TurnOffUsScraper, result):
-    img_url = result["img"]
+async def _create_comic_embed(
+    turn_off_us_scraper: TurnOffUsScraper, comic_data: ComicData
+):
+    img_url = comic_data.image_url
     img_description_json = await turn_off_us_scraper.describe_comic()
 
-    embed = discord.Embed(
-        title=result["title"], url=turn_off_us_scraper.get_comic_source_url()
-    )
+    embed = discord.Embed(title=comic_data.title, url=comic_data.source_url)
 
     for key, value in img_description_json.items():
         embed.add_field(name=key, value=value, inline=False)

@@ -22,7 +22,6 @@ class Client(commands.Bot):
             print(f"Error syncing commands: {e}")
 
 
-
 async def main():
     # initialize intents
     intents = discord.Intents.default()
@@ -36,14 +35,30 @@ async def main():
     await bot.add_cog(TurnOffUsCog(bot), guild=discord.Object(id=config["SERVER_ID"]))
     await bot.add_cog(MonkeyUserCog(bot), guild=discord.Object(id=config["SERVER_ID"]))
 
-    @bot.tree.command(name="help", description="Show help options for all commands", guild=discord.Object(id=config["SERVER_ID"]))
+    @bot.tree.command(
+        name="help",
+        description="Show help options for all commands",
+        guild=discord.Object(id=config["SERVER_ID"]),
+    )
     async def help_command(interaction: discord.Interaction):
-        embed = discord.Embed(title="Help", description="List of commands:", color=0x00ff00)
-        embed.add_field(name="/xkcd", value="Get the usable options for xkcd", inline=False)
-        embed.add_field(name="/turnoff_us", value="Get the usable options for turnoff.us", inline=False)
-        embed.add_field(name="/monkey_user", value="Get the usable options for monkeyuser.com", inline=False)
+        embed = discord.Embed(
+            title="Help", description="List of commands:", color=0x00FF00
+        )
+        embed.add_field(
+            name="/xkcd", value="Get the usable options for xkcd", inline=False
+        )
+        embed.add_field(
+            name="/turnoff_us",
+            value="Get the usable options for turnoff.us",
+            inline=False,
+        )
+        embed.add_field(
+            name="/monkey_user",
+            value="Get the usable options for monkeyuser.com",
+            inline=False,
+        )
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     await bot.start(config["DISCORD_BOT_TOKEN"])
 

@@ -1,6 +1,8 @@
 import aiohttp
 import asyncio
 from dotenv import dotenv_values
+from urllib.parse import urljoin
+from comic_object import ComicData
 from scraper import Scraper
 
 config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
@@ -29,7 +31,7 @@ class XkcdScraper(Scraper):
     def latest_comic_url(self):
         return "https://xkcd.com/"
 
-    async def _page_url(self, url: str):
+    async def _fetch_content(self, url: str) -> ComicData | None:
         async with aiohttp.ClientSession() as session:
             try:
                 # fetch the raw HTML
@@ -43,17 +45,28 @@ class XkcdScraper(Scraper):
                     print(comic_json)
 
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
-                    self.url = f"https://xkcd.com/{comic_json['num']}/"
+                    base_url = "https://xkcd.com/"
+                    full_url = urljoin(base_url, str(comic_json["num"]))
+                    self.url = full_url
                     self.src = comic_json["img"]
                     self.alt = comic_json["alt"]
                     if self.src[-4:] == ".gif":
-                        return await self._page_url("https://c.xkcd.com/random/comic/")
+                        return await self._fetch_content(
+                            "https://c.xkcd.com/random/comic/"
+                        )
 
-                    return comic_json
+                    comic_data = ComicData(
+                        title=comic_json["title"],
+                        description=self.alt,
+                        image_url=self.src,
+                        source_url=self.url,
+                        source_name=self.comic_name,
+                    )
+                    return comic_data
 
             except aiohttp.ClientError as e:
                 print(f"Error fetching URL: {e}")
-                return []
+                return None
 
 
 # Run the async function
@@ -61,4 +74,4 @@ if __name__ == "__main__":
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper()
     asyncio.run(xkcd_scraper.search_comic("sql injection"))
-    asyncio.run(xkcd_scraper.describe_comic())
+    # asyncio.run(xkcd_scraper.describe_comic())

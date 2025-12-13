@@ -2,6 +2,8 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
+
+from comic_object import ComicData
 from xkcd_scraper import XkcdScraper
 from dotenv import dotenv_values
 
@@ -154,7 +156,6 @@ class XkcdButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.xkcd_scraper.random_comic()
-
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(
             embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True
@@ -174,13 +175,11 @@ class XkcdButtonView(discord.ui.View):
 # =================================================
 
 
-async def _create_comic_embed(xkcd_scraper: XkcdScraper, result):
-    img_url = result["img"]
+async def _create_comic_embed(xkcd_scraper: XkcdScraper, comic_data: ComicData):
+    img_url = comic_data.image_url
     img_description_json = await xkcd_scraper.describe_comic()
 
-    embed = discord.Embed(
-        title=result["title"], url=xkcd_scraper.get_comic_source_url()
-    )
+    embed = discord.Embed(title=comic_data.title, url=comic_data.source_url)
 
     for key, value in img_description_json.items():
         embed.add_field(name=key, value=value, inline=False)

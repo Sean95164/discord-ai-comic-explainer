@@ -2,6 +2,7 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
+from comic_object import ComicData
 from monkey_user_scraper import MonkeyUserScraper
 from dotenv import dotenv_values
 
@@ -55,7 +56,10 @@ class MonkeyUserCog(commands.Cog):
         )
 
         # attach an example image
-        embed.add_field(name="Example", value="Here's an example of natural language instructions comic.")
+        embed.add_field(
+            name="Example",
+            value="Here's an example of natural language instructions comic.",
+        )
         file = discord.File("assets/273-natural-language-instructions.png")
         embed.set_image(url="attachment://273-natural-language-instructions.png")
 
@@ -183,13 +187,13 @@ class MonkeyUserButtonView(discord.ui.View):
 # =================================================
 
 
-async def _create_comic_embed(monkey_user_scraper: MonkeyUserScraper, result):
-    img_url = result["img"]
+async def _create_comic_embed(
+    monkey_user_scraper: MonkeyUserScraper, comic_data: ComicData
+):
+    img_url = comic_data.image_url
     img_description_json = await monkey_user_scraper.describe_comic()
 
-    embed = discord.Embed(
-        title=result["title"], url=monkey_user_scraper.get_comic_source_url()
-    )
+    embed = discord.Embed(title=comic_data.title, url=comic_data.source_url)
 
     for key, value in img_description_json.items():
         embed.add_field(name=key, value=value, inline=False)
