@@ -4,21 +4,15 @@ import re
 import random
 import json
 from bs4 import BeautifulSoup
-from dotenv import dotenv_values
 from comic_object import ComicData
 from scraper import Scraper
 from urllib.parse import urljoin
 
-config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
-
-
-TURNOFFUS_CSE_ID = config["TURNOFFUS_CSE_ID"]
-
 
 class TurnOffUsScraper(Scraper):
 
-    def __init__(self):
-        super().__init__(google_cse_id=TURNOFFUS_CSE_ID)
+    def __init__(self, config, logger=None):
+        super().__init__(google_cse_id=config["TURNOFFUS_CSE_ID"], config=config, logger=logger)
 
     @property
     def comic_name(self):
@@ -47,13 +41,12 @@ class TurnOffUsScraper(Scraper):
                         base_url = "https://turnoff.us/"
                         random_path = random.choice(pages)
                         full_url = urljoin(base_url, random_path)
-                        print(f"Random link: {full_url}")
                         return full_url
                     else:
                         return None
 
                 else:
-                    print("No random link found.")
+                    self.logger.error("turnoff.us: Cannot get random comic URL.") if self.logger else None
                     return None
 
     @property
@@ -94,22 +87,26 @@ class TurnOffUsScraper(Scraper):
                                 source_url=str(self.url),
                                 source_name=self.comic_name,
                             )
+                            self.logger.info(f"turnoff.us: Fetched comic: {comic_data}") if self.logger else None
                             return comic_data
                         else:
-                            print("No image found.")
+                            self.logger.error("turnoff.us: Cannot find image tag.") if self.logger else None
                             return None
                     else:
-                        print("No article found.")
+                        self.logger.error("turnoff.us: Cannot find article tag.") if self.logger else None
                         return None
 
             except aiohttp.ClientError as e:
-                print(f"Error fetching URL: {e}")
+                self.logger.error(f"turnoff.us: Error fetching URL: {e}") if self.logger else None
                 return None
 
 
 # Run the async function
 if __name__ == "__main__":
-    turnoff_us_scraper = TurnOffUsScraper()
+    from dotenv import dotenv_values
+
+    config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
+    turnoff_us_scraper = TurnOffUsScraper(config=config)
     # asyncio.run(turnoff_us_scraper.search_comic("unzip"))
     asyncio.run(turnoff_us_scraper.random_comic())
     asyncio.run(turnoff_us_scraper.describe_comic())

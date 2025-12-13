@@ -4,9 +4,6 @@ from discord import app_commands
 from discord.ext import commands, tasks
 from comic_object import ComicData
 from monkey_user_scraper import MonkeyUserScraper
-from dotenv import dotenv_values
-
-config = {**dotenv_values(".env.secret")}
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=8, minute=0, second=0, tzinfo=timezone)
@@ -28,9 +25,11 @@ class MonkeyUserCog(commands.Cog):
             from the MonkeyUser website.
     """
 
-    def __init__(self, bot):
+    def __init__(self, bot, config, logger):
         self.bot = bot
-        self.monkey_user_scraper = MonkeyUserScraper()
+        self.config = config
+        self.logger = logger
+        self.monkey_user_scraper = MonkeyUserScraper(config=config, logger=logger)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -72,13 +71,13 @@ class MonkeyUserCog(commands.Cog):
 
     @tasks.loop(time=task_time)
     async def post_monkey_user_comic(self):
-        channel = self.bot.get_channel(int(config["MONKEYUSER_CHANNEL_ID"]))
+        channel = self.bot.get_channel(int(self.config["MONKEYUSER_CHANNEL_ID"]))
         if channel:
             result = await self.monkey_user_scraper.random_comic()
             embed = await _create_comic_embed(self.monkey_user_scraper, result)
             await channel.send(embed=embed)
         else:
-            print("Channel not found.")
+            self.logger.error("monkeyuser channel not found.")
 
     @post_monkey_user_comic.before_loop
     async def before_post_monkey_user_comic_task(self):
@@ -114,6 +113,7 @@ class MonkeyUserSearchModal(discord.ui.Modal, title="Search"):
         result = await self.monkey_user_scraper.search_comic(self.user_input.value)
         if not result:
             await interaction.followup.send("No results found.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.monkey_user_scraper, result)
         await interaction.followup.send(
@@ -200,6 +200,6 @@ async def _create_comic_embed(
 
     embed.set_image(url=img_url)
     embed.set_footer(
-        text=f"Posted on {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
+        text=f"Posted at {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
     )
     return embed

@@ -9,14 +9,6 @@ from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_groq import ChatGroq
 from ddgs.exceptions import DDGSException
 from comic_object import ComicAnalysis, ComicData
-from dotenv import dotenv_values
-
-config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
-
-os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
-os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
-SEARCH_ENGINE = config["SEARCH_ENGINE"]
-IMAGE_LLM = config["IMAGE_LLM"]
 
 
 class Scraper(ABC):
@@ -28,13 +20,20 @@ class Scraper(ABC):
     and can leverage the provided utilities for fetching and describing comics.
     """
 
-    def __init__(self, google_cse_id: str = None):
+    def __init__(self, google_cse_id: str, config: dict, logger=None):
+        os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
+        os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
+
         self.src = None
         self.alt = None
         self.url = None
         self.google_cse_id = google_cse_id
+        self.config = config
+        self.logger = logger
+        if logger is None:
+            print("No logger provided.")
         self.llm = ChatGroq(
-            model=IMAGE_LLM,
+            model=config["IMAGE_LLM"],
             temperature=1,
             max_tokens=512,
             timeout=None,
@@ -71,14 +70,15 @@ class Scraper(ABC):
     async def latest_comic(self):
         return await self._fetch_content(self.latest_comic_url)
 
-    async def search_comic(self, query: str, search_engine=SEARCH_ENGINE):
+    async def search_comic(self, query: str):
         link = None
+        search_engine = self.config["SEARCH_ENGINE"]
         if search_engine == "google":
             wrapper = GoogleSearchAPIWrapper(google_cse_id=self.google_cse_id)
             # k=1 ensures we just get the top result
             results = wrapper.results(query, num_results=1)
             if results:
-                link = results[0]["link"]
+                link = results[0].get("link")
 
         elif search_engine == "duckduckgo":
             wrapper = DuckDuckGoSearchAPIWrapper(
@@ -92,11 +92,10 @@ class Scraper(ABC):
                 results = json.loads(
                     await search.ainvoke(f"{query} site:{self.search_domain}")
                 )
-                print(results)
                 if results:
                     link = results[0]["link"]
             except DDGSException:
-                print(f"No results found")
+                self.logger.info(f"Search for {query}: No results found in {self.comic_name}") if self.logger else None
                 return None
 
         if link:
@@ -148,10 +147,9 @@ class Scraper(ABC):
                     "comic_name": self.comic_name,
                 }
             )
-            print(result)
             return result
         except Exception as e:
-            print(f"Error generating response: {e}")
+            self.logger.error(f"Error generating response: {e}") if self.logger else None
             return {"Core_concept": "Error", "Explanation": "Failed to parse analysis."}
 
     def get_comic_source_url(self):

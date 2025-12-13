@@ -2,23 +2,14 @@ import aiohttp
 import asyncio
 import random
 from bs4 import BeautifulSoup
-from dotenv import dotenv_values
-
 from comic_object import ComicData
 from scraper import Scraper
 from urllib.parse import urljoin
 
 
-config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
-
-
-MONKEYUSER_CSE_ID = config["MONKEYUSER_CSE_ID"]
-
-
 class MonkeyUserScraper(Scraper):
-
-    def __init__(self):
-        super().__init__(google_cse_id=MONKEYUSER_CSE_ID)
+    def __init__(self, config, logger=None):
+        super().__init__(google_cse_id=config["MONKEYUSER_CSE_ID"], config=config, logger=logger)
 
     @property
     def comic_name(self):
@@ -30,17 +21,20 @@ class MonkeyUserScraper(Scraper):
 
     @property
     async def random_comic_url(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get("https://www.monkeyuser.com/index.json") as response:
-                response.raise_for_status()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get("https://www.monkeyuser.com/index.json") as response:
+                    response.raise_for_status()
 
-                json_data = await response.json()
-                random_comic = random.choice(json_data)
+                    json_data = await response.json()
+                    random_comic = random.choice(json_data)
 
-                base_url = "https://www.monkeyuser.com"
-                full_url = urljoin(base_url, random_comic["url"])
-                print(f"Random link: {full_url}")
-                return full_url
+                    base_url = "https://www.monkeyuser.com"
+                    full_url = urljoin(base_url, random_comic["url"])
+                    return full_url
+        except Exception as e:
+            self.logger.error(f"monkeyuser.com: Error fetching random comic: {e}") if self.logger else None
+            return None
 
     @property
     def latest_comic_url(self):
@@ -80,23 +74,26 @@ class MonkeyUserScraper(Scraper):
                                 source_url=str(self.url),
                                 source_name=self.comic_name,
                             )
-
+                            self.logger.info(f"monkeyuser.com: Fetched comic: {comic_data}") if self.logger else None
                             return comic_data
                         else:
-                            print("No image found.")
+                            self.logger.error("monkeyuser.com: Cannot find image tag.") if self.logger else None
                             return None
                     else:
-                        print("No content_div found.")
+                        self.logger.error("monkeyuser.com: Cannot find div tag with class 'content'.") if self.logger else None
                         return None
 
             except aiohttp.ClientError as e:
-                print(f"Error fetching URL: {e}")
+                self.logger.error(f"monkeyuser.com: Error fetching URL: {e}") if self.logger else None
                 return None
 
 
 # Run the async function
 if __name__ == "__main__":
-    monkey_user_scraper = MonkeyUserScraper()
-    # asyncio.run(turnoff_us_scraper.search_comic("unzip"))
-    asyncio.run(monkey_user_scraper.random_comic())
-    asyncio.run(monkey_user_scraper.describe_comic())
+    from dotenv import dotenv_values
+
+    config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
+    monkey_user_scraper = MonkeyUserScraper(config=config)
+    asyncio.run(monkey_user_scraper.search_comic("instructions"))
+    # asyncio.run(monkey_user_scraper.random_comic())
+    # asyncio.run(monkey_user_scraper.describe_comic())

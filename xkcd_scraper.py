@@ -1,19 +1,13 @@
 import aiohttp
 import asyncio
-from dotenv import dotenv_values
 from urllib.parse import urljoin
 from comic_object import ComicData
 from scraper import Scraper
 
-config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
-
-XKCD_CSE_ID = config["XKCD_CSE_ID"]
-
 
 class XkcdScraper(Scraper):
-
-    def __init__(self):
-        super().__init__(google_cse_id=XKCD_CSE_ID)
+    def __init__(self, config, logger=None):
+        super().__init__(google_cse_id=config["XKCD_CSE_ID"], config=config, logger=logger)
 
     @property
     def comic_name(self):
@@ -42,7 +36,6 @@ class XkcdScraper(Scraper):
 
                 async with session.get(f"{self.url}/info.0.json") as response:
                     comic_json = await response.json()
-                    print(comic_json)
 
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
                     base_url = "https://xkcd.com/"
@@ -62,16 +55,20 @@ class XkcdScraper(Scraper):
                         source_url=self.url,
                         source_name=self.comic_name,
                     )
+                    self.logger.info(f"xkcd.com: Fetched comic: {comic_data}") if self.logger else None
                     return comic_data
 
             except aiohttp.ClientError as e:
-                print(f"Error fetching URL: {e}")
+                self.logger.error(f"xkcd.com: Error fetching URL: {e}") if self.logger else None
                 return None
 
 
 # Run the async function
 if __name__ == "__main__":
+    from dotenv import dotenv_values
+
+    config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
     target_url = "https://c.xkcd.com/random/comic/"
-    xkcd_scraper = XkcdScraper()
+    xkcd_scraper = XkcdScraper(config=config)
     asyncio.run(xkcd_scraper.search_comic("sql injection"))
     # asyncio.run(xkcd_scraper.describe_comic())

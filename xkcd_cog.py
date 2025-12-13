@@ -2,12 +2,8 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
-
 from comic_object import ComicData
 from xkcd_scraper import XkcdScraper
-from dotenv import dotenv_values
-
-config = {**dotenv_values(".env.secret")}
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
@@ -27,9 +23,11 @@ class XkcdCog(commands.Cog):
         xkcd_scraper: An instance of the XkcdScraper used for retrieving xkcd data.
     """
 
-    def __init__(self, bot):
+    def __init__(self, bot, config, logger):
         self.bot = bot
-        self.xkcd_scraper = XkcdScraper()
+        self.config = config
+        self.logger = logger
+        self.xkcd_scraper = XkcdScraper(config=config, logger=logger)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -71,13 +69,13 @@ class XkcdCog(commands.Cog):
 
     @tasks.loop(time=task_time)
     async def post_xkcd_comic(self):
-        channel = self.bot.get_channel(int(config["XKCD_CHANNEL_ID"]))
+        channel = self.bot.get_channel(int(self.config["XKCD_CHANNEL_ID"]))
         if channel:
             result = await self.xkcd_scraper.random_comic()
             embed = await _create_comic_embed(self.xkcd_scraper, result)
             await channel.send(embed=embed)
         else:
-            print("Channel not found.")
+            self.logger.error("xkcd channel not found.")
 
     @post_xkcd_comic.before_loop
     async def before_post_xkcd_comic_task(self):
@@ -114,6 +112,7 @@ class XkcdSearchModal(discord.ui.Modal, title="Search"):
         result = await self.xkcd_scraper.search_comic(self.user_input.value)
         if not result:
             await interaction.followup.send("No results found.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(
@@ -186,6 +185,6 @@ async def _create_comic_embed(xkcd_scraper: XkcdScraper, comic_data: ComicData):
 
     embed.set_image(url=img_url)
     embed.set_footer(
-        text=f"Posted on {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
+        text=f"Posted at {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
     )
     return embed
