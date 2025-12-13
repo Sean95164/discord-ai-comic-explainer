@@ -1,0 +1,14 @@
+services:
+  discord-bot:
+    build: .
+    container_name: discord-bot
+    restart: unless-stopped
+    volumes:
+      - ./.env.secret:/app/.env.secret:ro
+      - ./.env.public:/app/.env.public:ro
+      - ./logs:/app/logs
+    logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
