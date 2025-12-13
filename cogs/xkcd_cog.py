@@ -3,7 +3,7 @@ import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 from comic_object import ComicData
-from xkcd_scraper import XkcdScraper
+from scrapers.xkcd_scraper import XkcdScraper
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
@@ -57,7 +57,7 @@ class XkcdCog(commands.Cog):
         embed.add_field(
             name="Example", value="Here's an example of an exploits of a mom comic."
         )
-        file = discord.File("assets/exploits_of_a_mom_2x.png")
+        file = discord.File("./assets/exploits_of_a_mom_2x.png")
         embed.set_image(url="attachment://exploits_of_a_mom_2x.png")
 
         await interaction.response.send_message(
@@ -143,6 +143,9 @@ class XkcdButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.xkcd_scraper.latest_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(
@@ -155,6 +158,10 @@ class XkcdButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.xkcd_scraper.random_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
+
         embed = await _create_comic_embed(self.xkcd_scraper, result)
         await interaction.followup.send(
             embed=embed, view=XkcdButtonView(self.xkcd_scraper), ephemeral=True

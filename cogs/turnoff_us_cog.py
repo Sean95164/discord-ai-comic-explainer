@@ -2,7 +2,7 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
-from turnoff_us_scraper import TurnOffUsScraper
+from scrapers.turnoff_us_scraper import TurnOffUsScraper
 from comic_object import ComicData
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
@@ -54,7 +54,7 @@ class TurnOffUsCog(commands.Cog):
 
         # attach an example image
         embed.add_field(name="Example", value="Here's an example of unzip comic.")
-        file = discord.File("assets/unzip.png")
+        file = discord.File("./assets/unzip.png")
         embed.set_image(url="attachment://unzip.png")
 
         await interaction.response.send_message(
@@ -146,6 +146,9 @@ class TurnOffUsButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.turnoff_us_scraper.latest_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.turnoff_us_scraper, result)
         await interaction.followup.send(
@@ -160,6 +163,9 @@ class TurnOffUsButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.turnoff_us_scraper.random_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.turnoff_us_scraper, result)
         await interaction.followup.send(

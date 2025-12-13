@@ -1,63 +1,52 @@
 import aiohttp
 import asyncio
-import re
 import random
-import json
 from bs4 import BeautifulSoup
 from comic_object import ComicData
-from scraper import Scraper
+from scrapers.scraper import Scraper
 from urllib.parse import urljoin
 
 
-class TurnOffUsScraper(Scraper):
-
+class MonkeyUserScraper(Scraper):
     def __init__(self, config, logger=None):
         super().__init__(
-            google_cse_id=config["TURNOFFUS_CSE_ID"], config=config, logger=logger
+            google_cse_id=config["MONKEYUSER_CSE_ID"], config=config, logger=logger
         )
 
     @property
     def comic_name(self):
-        return "turnoff.us"
+        return "monkeyuser.com"
 
     @property
     def search_domain(self):
-        return "turnoff.us/geek/"
+        return "www.monkeyuser.com/"
 
     @property
     async def random_comic_url(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get("https://turnoff.us/") as response:
-                response.raise_for_status()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    "https://www.monkeyuser.com/index.json"
+                ) as response:
+                    response.raise_for_status()
 
-                html = await response.text()
+                    json_data = await response.json()
+                    random_comic = random.choice(json_data)
 
-                pattern = re.compile(r"var pages = (\[.*?\]);", re.DOTALL)
-                match = pattern.search(html)
-
-                if match:
-                    pages_str = match.group(1)
-                    pages = json.loads(pages_str)
-
-                    if pages:
-                        base_url = "https://turnoff.us/"
-                        random_path = random.choice(pages)
-                        full_url = urljoin(base_url, random_path)
-                        return full_url
-                    else:
-                        return None
-
-                else:
-                    (
-                        self.logger.error("turnoff.us: Cannot get random comic URL.")
-                        if self.logger
-                        else None
-                    )
-                    return None
+                    base_url = "https://www.monkeyuser.com"
+                    full_url = urljoin(base_url, random_comic["url"])
+                    return full_url
+        except Exception as e:
+            (
+                self.logger.error(f"monkeyuser.com: Error fetching random comic: {e}")
+                if self.logger
+                else None
+            )
+            return None
 
     @property
     def latest_comic_url(self):
-        return "https://turnoff.us/"
+        return "https://www.monkeyuser.com/"
 
     async def random_comic(self):
         return await self._fetch_content(await self.random_comic_url)
@@ -73,11 +62,11 @@ class TurnOffUsScraper(Scraper):
                     html = await response.text()
                     soup = BeautifulSoup(html, "lxml")
                     # Return the second image URL (format: {'src': 'https://...', 'alt':'})
-                    article = soup.find("article", class_="post-content")
-                    if article:
-                        img_tag = article.find("img")
+                    content_div = soup.find("div", class_="content")
+                    if content_div:
+                        img_tag = content_div.find("img")
                         if img_tag:
-                            base_url = "https://turnoff.us/"
+                            base_url = "https://www.monkeyuser.com"
                             self.src = urljoin(base_url, img_tag["src"])
                             self.alt = img_tag["alt"]
                             if self.src[-4:] == ".gif":
@@ -87,7 +76,7 @@ class TurnOffUsScraper(Scraper):
                                 return await self._fetch_content(random_url)
 
                             comic_data = ComicData(
-                                title=self.alt,
+                                title=img_tag["title"],
                                 description=self.alt,
                                 image_url=self.src,
                                 source_url=str(self.url),
@@ -95,7 +84,7 @@ class TurnOffUsScraper(Scraper):
                             )
                             (
                                 self.logger.info(
-                                    f"turnoff.us: Fetched comic: {comic_data}"
+                                    f"monkeyuser.com: Fetched comic: {comic_data}"
                                 )
                                 if self.logger
                                 else None
@@ -103,14 +92,18 @@ class TurnOffUsScraper(Scraper):
                             return comic_data
                         else:
                             (
-                                self.logger.error("turnoff.us: Cannot find image tag.")
+                                self.logger.error(
+                                    "monkeyuser.com: Cannot find image tag."
+                                )
                                 if self.logger
                                 else None
                             )
                             return None
                     else:
                         (
-                            self.logger.error("turnoff.us: Cannot find article tag.")
+                            self.logger.error(
+                                "monkeyuser.com: Cannot find div tag with class 'content'."
+                            )
                             if self.logger
                             else None
                         )
@@ -118,7 +111,7 @@ class TurnOffUsScraper(Scraper):
 
             except aiohttp.ClientError as e:
                 (
-                    self.logger.error(f"turnoff.us: Error fetching URL: {e}")
+                    self.logger.error(f"monkeyuser.com: Error fetching URL: {e}")
                     if self.logger
                     else None
                 )
@@ -129,8 +122,8 @@ class TurnOffUsScraper(Scraper):
 if __name__ == "__main__":
     from dotenv import dotenv_values
 
-    config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
-    turnoff_us_scraper = TurnOffUsScraper(config=config)
-    # asyncio.run(turnoff_us_scraper.search_comic("unzip"))
-    asyncio.run(turnoff_us_scraper.random_comic())
-    asyncio.run(turnoff_us_scraper.describe_comic())
+    config = {**dotenv_values("../.env.secret"), **dotenv_values("../.env.public")}
+    monkey_user_scraper = MonkeyUserScraper(config=config)
+    asyncio.run(monkey_user_scraper.search_comic("instructions"))
+    # asyncio.run(monkey_user_scraper.random_comic())
+    # asyncio.run(monkey_user_scraper.describe_comic())

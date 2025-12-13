@@ -3,7 +3,7 @@ import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 from comic_object import ComicData
-from monkey_user_scraper import MonkeyUserScraper
+from scrapers.monkey_user_scraper import MonkeyUserScraper
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=8, minute=0, second=0, tzinfo=timezone)
@@ -59,7 +59,7 @@ class MonkeyUserCog(commands.Cog):
             name="Example",
             value="Here's an example of natural language instructions comic.",
         )
-        file = discord.File("assets/273-natural-language-instructions.png")
+        file = discord.File("./assets/273-natural-language-instructions.png")
         embed.set_image(url="attachment://273-natural-language-instructions.png")
 
         await interaction.response.send_message(
@@ -147,6 +147,9 @@ class MonkeyUserButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.monkey_user_scraper.latest_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.monkey_user_scraper, result)
         await interaction.followup.send(
@@ -161,6 +164,9 @@ class MonkeyUserButtonView(discord.ui.View):
     ):
         await interaction.response.defer()
         result = await self.monkey_user_scraper.random_comic()
+        if result is None:
+            await interaction.followup.send("Try again.", ephemeral=True)
+            return
 
         embed = await _create_comic_embed(self.monkey_user_scraper, result)
         await interaction.followup.send(

@@ -7,9 +7,9 @@ import datetime
 from logging.handlers import TimedRotatingFileHandler
 from discord.ext import commands
 from dotenv import dotenv_values
-from turnoff_us_cog import TurnOffUsCog
-from xkcd_cog import XkcdCog
-from monkey_user_cog import MonkeyUserCog
+from cogs.turnoff_us_cog import TurnOffUsCog
+from cogs.xkcd_cog import XkcdCog
+from cogs.monkey_user_cog import MonkeyUserCog
 
 
 class Client(commands.Bot):

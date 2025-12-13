@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 from urllib.parse import urljoin
 from comic_object import ComicData
-from scraper import Scraper
+from scrapers.scraper import Scraper
 
 
 class XkcdScraper(Scraper):
@@ -77,7 +77,7 @@ class XkcdScraper(Scraper):
 if __name__ == "__main__":
     from dotenv import dotenv_values
 
-    config = {**dotenv_values(".env.secret"), **dotenv_values(".env.public")}
+    config = {**dotenv_values("../.env.secret"), **dotenv_values("../.env.public")}
     target_url = "https://c.xkcd.com/random/comic/"
     xkcd_scraper = XkcdScraper(config=config)
     asyncio.run(xkcd_scraper.search_comic("sql injection"))
