@@ -200,6 +200,6 @@ async def _create_comic_embed(
 
     embed.set_image(url=img_url)
     embed.set_footer(
-        text=f"Posted at {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}"
+        text=f"Posted at {datetime.datetime.now(tz=timezone).strftime("%Y/%m/%d %H:%M:%S")}"
     )
     return embed

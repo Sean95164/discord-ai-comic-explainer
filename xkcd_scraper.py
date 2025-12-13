@@ -7,7 +7,9 @@ from scraper import Scraper
 
 class XkcdScraper(Scraper):
     def __init__(self, config, logger=None):
-        super().__init__(google_cse_id=config["XKCD_CSE_ID"], config=config, logger=logger)
+        super().__init__(
+            google_cse_id=config["XKCD_CSE_ID"], config=config, logger=logger
+        )
 
     @property
     def comic_name(self):
@@ -55,11 +57,19 @@ class XkcdScraper(Scraper):
                         source_url=self.url,
                         source_name=self.comic_name,
                     )
-                    self.logger.info(f"xkcd.com: Fetched comic: {comic_data}") if self.logger else None
+                    (
+                        self.logger.info(f"xkcd.com: Fetched comic: {comic_data}")
+                        if self.logger
+                        else None
+                    )
                     return comic_data
 
             except aiohttp.ClientError as e:
-                self.logger.error(f"xkcd.com: Error fetching URL: {e}") if self.logger else None
+                (
+                    self.logger.error(f"xkcd.com: Error fetching URL: {e}")
+                    if self.logger
+                    else None
+                )
                 return None
 
 

@@ -12,7 +12,9 @@ from urllib.parse import urljoin
 class TurnOffUsScraper(Scraper):
 
     def __init__(self, config, logger=None):
-        super().__init__(google_cse_id=config["TURNOFFUS_CSE_ID"], config=config, logger=logger)
+        super().__init__(
+            google_cse_id=config["TURNOFFUS_CSE_ID"], config=config, logger=logger
+        )
 
     @property
     def comic_name(self):
@@ -46,7 +48,11 @@ class TurnOffUsScraper(Scraper):
                         return None
 
                 else:
-                    self.logger.error("turnoff.us: Cannot get random comic URL.") if self.logger else None
+                    (
+                        self.logger.error("turnoff.us: Cannot get random comic URL.")
+                        if self.logger
+                        else None
+                    )
                     return None
 
     @property
@@ -87,17 +93,35 @@ class TurnOffUsScraper(Scraper):
                                 source_url=str(self.url),
                                 source_name=self.comic_name,
                             )
-                            self.logger.info(f"turnoff.us: Fetched comic: {comic_data}") if self.logger else None
+                            (
+                                self.logger.info(
+                                    f"turnoff.us: Fetched comic: {comic_data}"
+                                )
+                                if self.logger
+                                else None
+                            )
                             return comic_data
                         else:
-                            self.logger.error("turnoff.us: Cannot find image tag.") if self.logger else None
+                            (
+                                self.logger.error("turnoff.us: Cannot find image tag.")
+                                if self.logger
+                                else None
+                            )
                             return None
                     else:
-                        self.logger.error("turnoff.us: Cannot find article tag.") if self.logger else None
+                        (
+                            self.logger.error("turnoff.us: Cannot find article tag.")
+                            if self.logger
+                            else None
+                        )
                         return None
 
             except aiohttp.ClientError as e:
-                self.logger.error(f"turnoff.us: Error fetching URL: {e}") if self.logger else None
+                (
+                    self.logger.error(f"turnoff.us: Error fetching URL: {e}")
+                    if self.logger
+                    else None
+                )
                 return None
 
 

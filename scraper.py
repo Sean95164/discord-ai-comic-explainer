@@ -95,7 +95,13 @@ class Scraper(ABC):
                 if results:
                     link = results[0]["link"]
             except DDGSException:
-                self.logger.info(f"Search for {query}: No results found in {self.comic_name}") if self.logger else None
+                (
+                    self.logger.info(
+                        f"Search for {query}: No results found in {self.comic_name}"
+                    )
+                    if self.logger
+                    else None
+                )
                 return None
 
         if link:
@@ -149,7 +155,11 @@ class Scraper(ABC):
             )
             return result
         except Exception as e:
-            self.logger.error(f"Error generating response: {e}") if self.logger else None
+            (
+                self.logger.error(f"Error generating response: {e}")
+                if self.logger
+                else None
+            )
             return {"Core_concept": "Error", "Explanation": "Failed to parse analysis."}
 
     def get_comic_source_url(self):

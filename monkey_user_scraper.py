@@ -9,7 +9,9 @@ from urllib.parse import urljoin
 
 class MonkeyUserScraper(Scraper):
     def __init__(self, config, logger=None):
-        super().__init__(google_cse_id=config["MONKEYUSER_CSE_ID"], config=config, logger=logger)
+        super().__init__(
+            google_cse_id=config["MONKEYUSER_CSE_ID"], config=config, logger=logger
+        )
 
     @property
     def comic_name(self):
@@ -23,7 +25,9 @@ class MonkeyUserScraper(Scraper):
     async def random_comic_url(self):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get("https://www.monkeyuser.com/index.json") as response:
+                async with session.get(
+                    "https://www.monkeyuser.com/index.json"
+                ) as response:
                     response.raise_for_status()
 
                     json_data = await response.json()
@@ -33,7 +37,11 @@ class MonkeyUserScraper(Scraper):
                     full_url = urljoin(base_url, random_comic["url"])
                     return full_url
         except Exception as e:
-            self.logger.error(f"monkeyuser.com: Error fetching random comic: {e}") if self.logger else None
+            (
+                self.logger.error(f"monkeyuser.com: Error fetching random comic: {e}")
+                if self.logger
+                else None
+            )
             return None
 
     @property
@@ -74,17 +82,39 @@ class MonkeyUserScraper(Scraper):
                                 source_url=str(self.url),
                                 source_name=self.comic_name,
                             )
-                            self.logger.info(f"monkeyuser.com: Fetched comic: {comic_data}") if self.logger else None
+                            (
+                                self.logger.info(
+                                    f"monkeyuser.com: Fetched comic: {comic_data}"
+                                )
+                                if self.logger
+                                else None
+                            )
                             return comic_data
                         else:
-                            self.logger.error("monkeyuser.com: Cannot find image tag.") if self.logger else None
+                            (
+                                self.logger.error(
+                                    "monkeyuser.com: Cannot find image tag."
+                                )
+                                if self.logger
+                                else None
+                            )
                             return None
                     else:
-                        self.logger.error("monkeyuser.com: Cannot find div tag with class 'content'.") if self.logger else None
+                        (
+                            self.logger.error(
+                                "monkeyuser.com: Cannot find div tag with class 'content'."
+                            )
+                            if self.logger
+                            else None
+                        )
                         return None
 
             except aiohttp.ClientError as e:
-                self.logger.error(f"monkeyuser.com: Error fetching URL: {e}") if self.logger else None
+                (
+                    self.logger.error(f"monkeyuser.com: Error fetching URL: {e}")
+                    if self.logger
+                    else None
+                )
                 return None
 
 

@@ -1,9 +1,10 @@
 import asyncio
 import os
+import time
 import discord
 import logging
 import datetime
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from discord.ext import commands
 from dotenv import dotenv_values
 from turnoff_us_cog import TurnOffUsCog
@@ -18,9 +19,16 @@ class Client(commands.Bot):
         self.logger = logger
 
     async def on_ready(self):
-        self.logger.info(f"===============================================================")
-        self.logger.info(f"Logged on as {self.user} at \"{datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}\"")
-        self.logger.info(f"===============================================================")
+        timezone = datetime.timezone(datetime.timedelta(hours=8))
+        self.logger.info(
+            f"==============================================================="
+        )
+        self.logger.info(
+            f'Logged on as {self.user} at "{datetime.datetime.now(tz=timezone).strftime("%Y/%m/%d %H:%M:%S")}"'
+        )
+        self.logger.info(
+            f"==============================================================="
+        )
         try:
             guild = discord.Object(id=self.config["SERVER_ID"])
             synced = await self.tree.sync(guild=guild)
@@ -28,6 +36,10 @@ class Client(commands.Bot):
 
         except Exception as e:
             self.logger.error(f"Error syncing commands: {e}")
+
+
+def utc_plus_8_converter(sec, what=None):
+    return time.gmtime(sec + 8 * 3600)
 
 
 async def main():
@@ -40,16 +52,18 @@ async def main():
     # setup logging
     logger = logging.getLogger("discord")
     logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler(
+    handler = TimedRotatingFileHandler(
         filename="logs/discord.log",
         encoding="utf-8",
-        mode="w",
-        maxBytes=5 * 1024 * 1024,
-        backupCount=2,
+        when="midnight",
+        interval=1,
+        backupCount=30,
     )
     handler.setFormatter(
         logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
     )
+    handler.converter = utc_plus_8_converter
+    handler.suffix = "%Y-%m-%d"
     logger.addHandler(handler)
 
     # initialize intents
@@ -61,7 +75,8 @@ async def main():
     bot = Client(config=config, logger=logger, command_prefix="!", intents=intents)
 
     await bot.add_cog(
-        XkcdCog(bot=bot, config=config, logger=logger), guild=discord.Object(id=config["SERVER_ID"])
+        XkcdCog(bot=bot, config=config, logger=logger),
+        guild=discord.Object(id=config["SERVER_ID"]),
     )
     await bot.add_cog(
         TurnOffUsCog(bot=bot, config=config, logger=logger),
