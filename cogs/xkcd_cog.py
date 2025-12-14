@@ -6,7 +6,7 @@ from comic_object import ComicData
 from scrapers.xkcd_scraper import XkcdScraper
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
-task_time = datetime.time(hour=12, minute=0, second=0, tzinfo=timezone)
+task_time = datetime.time(hour=8, minute=0, second=0, tzinfo=timezone)
 
 
 class XkcdCog(commands.Cog):

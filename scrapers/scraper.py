@@ -21,9 +21,6 @@ class Scraper(ABC):
     """
 
     def __init__(self, google_cse_id: str, config: dict, logger=None):
-        os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
-        os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
-
         self.src = None
         self.alt = None
         self.url = None
@@ -33,7 +30,7 @@ class Scraper(ABC):
         if logger is None:
             print("No logger provided.")
         self.llm = ChatGroq(
-            model=config["IMAGE_LLM"],
+            model=os.getenv("IMAGE_LLM"),
             temperature=1,
             max_tokens=512,
             timeout=None,
@@ -72,7 +69,7 @@ class Scraper(ABC):
 
     async def search_comic(self, query: str):
         link = None
-        search_engine = self.config["SEARCH_ENGINE"]
+        search_engine = os.getenv("SEARCH_ENGINE")
         if search_engine == "google":
             wrapper = GoogleSearchAPIWrapper(google_cse_id=self.google_cse_id)
             # k=1 ensures we just get the top result

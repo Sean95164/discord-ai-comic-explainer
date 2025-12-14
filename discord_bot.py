@@ -10,6 +10,7 @@ from dotenv import dotenv_values
 from cogs.turnoff_us_cog import TurnOffUsCog
 from cogs.xkcd_cog import XkcdCog
 from cogs.monkey_user_cog import MonkeyUserCog
+from cogs.util_cog import UtilCog
 
 
 class Client(commands.Bot):
@@ -17,6 +18,11 @@ class Client(commands.Bot):
         super().__init__(*args, **kwargs)
         self.config = config
         self.logger = logger
+
+        os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
+        os.environ["GROQ_API_KEY"] = config["GROQ_API_KEY"]
+        os.environ["SEARCH_ENGINE"] = config["SEARCH_ENGINE"]
+        os.environ["IMAGE_LLM"] = config["IMAGE_LLM"]
 
     async def on_ready(self):
         timezone = datetime.timezone(datetime.timedelta(hours=8))
@@ -26,6 +32,8 @@ class Client(commands.Bot):
         self.logger.info(
             f'Logged on as {self.user} at "{datetime.datetime.now(tz=timezone).strftime("%Y/%m/%d %H:%M:%S")}"'
         )
+        self.logger.info(f"Current search engine: {os.environ['SEARCH_ENGINE']}")
+        self.logger.info(f"Current image LLM: {os.environ['IMAGE_LLM']}")
         self.logger.info(
             f"==============================================================="
         )
@@ -74,43 +82,23 @@ async def main():
     # initialize bot
     bot = Client(config=config, logger=logger, command_prefix="!", intents=intents)
 
+    guild = discord.Object(id=config["SERVER_ID"])
+    await bot.add_cog(
+        UtilCog(bot=bot, config=config, logger=logger),
+        guild=guild,
+    )
     await bot.add_cog(
         XkcdCog(bot=bot, config=config, logger=logger),
-        guild=discord.Object(id=config["SERVER_ID"]),
+        guild=guild,
     )
     await bot.add_cog(
         TurnOffUsCog(bot=bot, config=config, logger=logger),
-        guild=discord.Object(id=config["SERVER_ID"]),
+        guild=guild,
     )
     await bot.add_cog(
         MonkeyUserCog(bot=bot, config=config, logger=logger),
-        guild=discord.Object(id=config["SERVER_ID"]),
+        guild=guild,
     )
-
-    @bot.tree.command(
-        name="help",
-        description="Show help options for all commands",
-        guild=discord.Object(id=config["SERVER_ID"]),
-    )
-    async def help_command(interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="Help", description="List of commands:", color=0x00FF00
-        )
-        embed.add_field(
-            name="/xkcd", value="Get the usable options for xkcd", inline=False
-        )
-        embed.add_field(
-            name="/turnoff_us",
-            value="Get the usable options for turnoff.us",
-            inline=False,
-        )
-        embed.add_field(
-            name="/monkey_user",
-            value="Get the usable options for monkeyuser.com",
-            inline=False,
-        )
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     await bot.start(config["DISCORD_BOT_TOKEN"])
 
