@@ -3,7 +3,7 @@ import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 from scrapers.turnoff_us_scraper import TurnOffUsScraper
-from comic_object import ComicData
+from objects.comic_object import ComicData
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))
 task_time = datetime.time(hour=8, minute=0, second=0, tzinfo=timezone)

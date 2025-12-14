@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 import random
 from bs4 import BeautifulSoup
-from comic_object import ComicData
+from objects.comic_object import ComicData
 from scrapers.scraper import Scraper
 from urllib.parse import urljoin
 

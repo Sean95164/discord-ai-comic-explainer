@@ -8,7 +8,7 @@ from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_groq import ChatGroq
 from ddgs.exceptions import DDGSException
-from comic_object import ComicAnalysis, ComicData
+from objects.comic_object import ComicAnalysis, ComicData
 
 
 class Scraper(ABC):

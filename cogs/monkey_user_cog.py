@@ -2,7 +2,7 @@ import discord
 import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
-from comic_object import ComicData
+from objects.comic_object import ComicData
 from scrapers.monkey_user_scraper import MonkeyUserScraper
 
 timezone = datetime.timezone(datetime.timedelta(hours=8))

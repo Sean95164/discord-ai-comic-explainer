@@ -4,7 +4,7 @@ import re
 import random
 import json
 from bs4 import BeautifulSoup
-from comic_object import ComicData
+from objects.comic_object import ComicData
 from scrapers.scraper import Scraper
 from urllib.parse import urljoin
 

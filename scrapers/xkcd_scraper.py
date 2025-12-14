@@ -1,7 +1,7 @@
 import aiohttp
 import asyncio
 from urllib.parse import urljoin
-from comic_object import ComicData
+from objects.comic_object import ComicData
 from scrapers.scraper import Scraper
 
 
